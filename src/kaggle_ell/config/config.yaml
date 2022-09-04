@@ -18,6 +18,6 @@ solution:
 
 wandb:
   enabled: true
-  project: kaggle_project
+  project: kaggle_ell
 
 git_hash: none

@@ -1,13 +1,13 @@
 from setuptools import setup, find_packages
 
-setup(name='kaggle_project',
+setup(name='kaggle_ell',
       version='1.0',
       packages=find_packages(),
       entry_points={
-          'console_scripts': ['run_solution=kaggle_project.run_solution:main']
+          'console_scripts': ['run_solution=kaggle_ell.run_solution:main']
       },
     package_data={
-      'project': ['config/*.yaml', 'config/env/*.yaml', 'config/model/*.yaml', 'config/workflow/*.yaml'],
+      'kaggle_ell': ['config/*.yaml', 'config/env/*.yaml', 'config/model/*.yaml', 'config/workflow/*.yaml'],
      },
       install_requires=[
           'pyyaml==6.0',
