@@ -1,0 +1,4 @@
+raw_data_path: '/content/kaggle_project_input'
+artifacts_path: '/content/kaggle_project_artifacts'
+submission_path: '/content/kaggle_project_sub'
+device: 0

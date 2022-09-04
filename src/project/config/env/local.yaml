@@ -1,0 +1,4 @@
+raw_data_path: 'data/raw_data'
+artifacts_path: 'data/artifacts'
+submission_path: 'data/sub'
+device: 'cpu'
