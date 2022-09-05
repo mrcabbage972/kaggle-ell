@@ -13,11 +13,11 @@ loggers:
     handlers: ['console']
     level: WARNING
     propagate: false
-  ai4code:
+  __main__:
     handlers: [ 'console' ]
     level: DEBUG
     propagate: false
-  src.ai4code:
+  kaggle_ell:
     handlers: [ 'console' ]
     level: DEBUG
     propagate: false
