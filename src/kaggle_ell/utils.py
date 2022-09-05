@@ -1,10 +1,11 @@
 import collections
 import logging
-import tqdm
-import logging
 import shutil
 
-LOGGER = logging.getLogger(__name__)
+import git
+import tqdm
+
+logger = logging.getLogger(__name__)
 
 
 class TqdmLoggingHandler(logging.Handler):
@@ -40,5 +41,15 @@ def log_disk_usage():
     BytesPerGB = 1024 * 1024 * 1024
 
     (total, used, free) = shutil.disk_usage(".")
-    LOGGER.info(
+    logger.info(
         "Disk Usage - total: %.2fGB" % (float(total) / BytesPerGB) + ", Used:  %.2fGB" % (float(used) / BytesPerGB))
+
+def get_git_hash():
+    repo = git.Repo(search_parent_directories=True)
+    sha = repo.head.object.hexsha
+    return sha
+
+
+def write_git_hash_to_file(output_file_path: str):
+    with open(output_file_path, 'w') as fout:
+        fout.write(get_git_hash())

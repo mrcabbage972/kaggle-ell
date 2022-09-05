@@ -20,6 +20,7 @@ setup(name='kaggle_ell',
           'tensorboardx',
           'datasets',
           'wandb',
-          'tqdm'
+          'tqdm',
+          'gitpython'
       ],
      )

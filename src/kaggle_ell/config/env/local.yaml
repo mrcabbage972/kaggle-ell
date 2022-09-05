@@ -1,4 +1,4 @@
-raw_data_path: 'data/raw_data'
-artifacts_path: 'data/artifacts'
-submission_path: 'data/sub'
+competition_data_path: 'data/competition_data'
+artifacts_path: 'data/output/artifacts'
+submission_path: 'data/output'
 device: 'cpu'

@@ -1,7 +1,7 @@
 
 defaults:
   - env: local
-  - workflow: baseline
+  - solution: transformer_finetune
 
   # disable logging by Hydra
   - override hydra/job_logging: none
@@ -15,9 +15,10 @@ hydra:
 solution:
   do_train: true
   do_predict : true
+  do_create_submission: true
 
 wandb:
-  enabled: true
+  enabled: false
   project: kaggle_ell
 
 git_hash: none

@@ -1,4 +1,4 @@
-raw_data_path: '/content/kaggle_ell_input'
+competition_data_path: '/content/kaggle_ell_input'
 artifacts_path: '/content/kaggle_ell_artifacts'
 submission_path: '/content/kaggle_ell_sub'
 device: 0

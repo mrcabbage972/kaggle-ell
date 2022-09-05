@@ -10,8 +10,9 @@ import hydra
 import yaml
 from omegaconf import OmegaConf
 
-from logging_utils import register_tqdm_logger, flatten, log_disk_usage
-from solution_factory import SolutionFactory
+from kaggle_ell.utils import register_tqdm_logger, flatten, log_disk_usage, get_git_hash
+from kaggle_ell.solution_factory import SolutionFactory
+from kaggle_ell.solutions import *
 
 HERE = pathlib.Path(__file__).parent.resolve()
 
@@ -23,30 +24,40 @@ logger = logging.getLogger(__name__)
 
 @hydra.main(config_path="config", config_name="config", version_base=None)
 def main(cfg: OmegaConf):
+    logger.info('*********STARTING**********')
+    git_hash = get_git_hash()
+    logger.info('Git hash={}'.format(git_hash))
     register_tqdm_logger()
     logger.info('cwd={}'.format(os.getcwd()))
     log_disk_usage()
 
     wandb_mode = 'online' if cfg.wandb.enabled else 'disabled'
-
+    cfg['git_hash'] = git_hash
     wandb.init(project=cfg.wandb.project, config=flatten(dict(cfg)), mode=wandb_mode)
 
-    solution = SolutionFactory.make(cfg.solution.args, cfg.env)
+    solution = SolutionFactory.make(cfg.solution.name, cfg.solution.args, cfg.env)
 
     if cfg.solution.do_train:
-        solution.train(cfg.env.raw_data_path, cfg.env.artifacts_path)
+        solution.train()
     else:
         logger.info('Skipping training due to config')
 
     if cfg.solution.do_predict:
         if os.path.exists(cfg.env.artifacts_path):
-            preds = solution.predict(cfg.env.raw_data_path, cfg.env.artifacts_path)
-            preds.to_pickle(os.path.join(cfg.env.submission_path, 'preds.pkl'))
-            solution.create_submission(preds, cfg.env.submission_path)
+            preds = solution.predict()
+            preds_path = os.path.join(cfg.env.artifacts_path, 'preds.pkl')
+            preds.to_pickle(preds_path)
+            logger.info(f'Wrote predictions to path {preds_path}')
         else:
             logger.error('Artifacts dir not found')
     else:
         logger.info('Skipping inference due to config')
+
+    if cfg.solution.do_create_submission:
+        if os.path.exists(cfg.env.artifacts_path):
+            solution.create_submission()
+        else:
+            logger.error('Artifacts dir not found')
 
     log_disk_usage()
     logger.info('Finished successfully')
