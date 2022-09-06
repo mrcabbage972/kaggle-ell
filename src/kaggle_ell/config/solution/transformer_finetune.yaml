@@ -19,7 +19,7 @@ args:
     gradient_accumulation_steps: 1
     max_grad_norm: 1000
     n_fold: 4
-    trn_fold: [0]
+    trn_fold: [0, 1, 2, 3]
     seed: 42
   model:
     backbone: "google/bert_uncased_L-2_H-128_A-2"
