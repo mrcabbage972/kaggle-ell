@@ -13,9 +13,9 @@ hydra:
       dir: ${env.artifacts_path}
 
 solution:
-  do_train: true
-  do_predict : true
-  do_create_submission: true
+  do_train: false
+  do_predict : false
+  do_create_submission: false
 
 wandb:
   enabled: false
