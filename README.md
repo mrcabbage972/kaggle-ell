@@ -28,9 +28,9 @@ The top-level configs are `env` and `solution`. Their respective yaml's are loca
         └── kaggle_ell
             └── config
                 ├── env
-                     ├── colab.yaml
-                     ├── kaggle.yaml
-                     ├── local.yaml
+                │    ├── colab.yaml
+                │    ├── kaggle.yaml
+                │    ├── local.yaml
                 │    └── [YOUR ENV NAME].yaml
                 └── solution 
                     ├── dummy_solution.yaml
