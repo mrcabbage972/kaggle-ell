@@ -61,7 +61,7 @@ def main(cfg: OmegaConf):
             logger.error('Artifacts dir not found')
 
     log_disk_usage()
-    logger.info('Finished successfully')
+    logger.info('*****Finished successfully*****')
 
 
 if __name__ == '__main__':
