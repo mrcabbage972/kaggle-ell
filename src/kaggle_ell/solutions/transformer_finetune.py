@@ -314,6 +314,8 @@ def train_loop(model, folds, fold, train_cfg, data_cfg, artifacts_path, device, 
 
     best_score = np.inf
 
+    checkpoint_path = os.path.join(artifacts_path, f"fold{fold}_best.pth")
+
     for epoch in range(train_cfg.epochs):
 
         start_time = time.time()
@@ -343,9 +345,9 @@ def train_loop(model, folds, fold, train_cfg, data_cfg, artifacts_path, device, 
             logger.info(f'Epoch {epoch + 1} - Save Best Score: {best_score:.4f} Model')
             torch.save({'model': model.state_dict(),
                         'predictions': predictions},
-                       artifacts_path + f"{train_cfg.model.replace('/', '-')}_fold{fold}_best.pth")
+                       checkpoint_path)
 
-    predictions = torch.load(artifacts_path + f"{train_cfg.model.replace('/', '-')}_fold{fold}_best.pth",
+    predictions = torch.load(checkpoint_path,
                              map_location=torch.device('cpu'))['predictions']
     valid_folds[[f"pred_{c}" for c in train_cfg.target_cols]] = predictions
 
