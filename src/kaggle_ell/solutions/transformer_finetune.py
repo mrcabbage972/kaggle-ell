@@ -15,48 +15,30 @@ from sklearn.metrics import mean_squared_error
 from torch.optim import AdamW
 from torch.utils.data import DataLoader, Dataset
 from tqdm.auto import tqdm
-from transformers import AutoTokenizer, AutoModel, AutoConfig
+from transformers import AutoTokenizer, AutoModel, AutoConfig, DataCollatorWithPadding
 from transformers import get_linear_schedule_with_warmup, get_cosine_schedule_with_warmup
 
 from kaggle_ell.solution import Solution
 from kaggle_ell.solution_factory import SolutionFactory
 
-logger = logging.getlogger(__name__)
-
-def prepare_input(cfg, text):
-    inputs = cfg.tokenizer.encode_plus(
-        text,
-        return_tensors=None,
-        add_special_tokens=True,
-        max_length=cfg.max_len,
-        pad_to_max_length=True,
-        truncation=True
-    )
-    for k, v in inputs.items():
-        inputs[k] = torch.tensor(v, dtype=torch.long)
-    return inputs
-
+logger = logging.getLogger(__name__)
 
 class TrainDataset(Dataset):
-    def __init__(self, cfg, df):
+    def __init__(self, cfg, df, tokenizer, target_cols):
         self.cfg = cfg
         self.texts = df['full_text'].values
-        self.labels = df[cfg.target_cols].values
+        self.labels = df[target_cols].values
+        self.tokenizer = tokenizer
 
     def __len__(self):
         return len(self.texts)
 
     def __getitem__(self, item):
-        inputs = prepare_input(self.cfg, self.texts[item])
-        label = torch.tensor(self.labels[item], dtype=torch.float)
-        return inputs, label
+        inputs = self.tokenizer(self.texts[item], padding=True, truncation=True, max_length=self.cfg.max_length)
+        #label = torch.tensor(self.labels[item], dtype=torch.float)
+        inputs['labels'] = self.labels[item]
+        return inputs
 
-
-def collate(inputs):
-    mask_len = int(inputs["attention_mask"].sum(axis=1).max())
-    for k, v in inputs.items():
-        inputs[k] = inputs[k][:, :mask_len]
-    return inputs
 
 
 class MeanPooling(nn.Module):
@@ -77,7 +59,7 @@ class CustomModel(nn.Module):
         super().__init__()
         self.cfg = cfg
         if config_path is None:
-            self.config = AutoConfig.from_pretrained(cfg.model, output_hidden_states=True)
+            self.config = AutoConfig.from_pretrained(cfg.backbone, output_hidden_states=True)
             self.config.hidden_dropout = 0.
             self.config.hidden_dropout_prob = 0.
             self.config.attention_dropout = 0.
@@ -86,7 +68,7 @@ class CustomModel(nn.Module):
         else:
             self.config = torch.load(config_path)
         if pretrained:
-            self.model = AutoModel.from_pretrained(cfg.model, config=self.config)
+            self.model = AutoModel.from_pretrained(cfg.backbone, config=self.config)
         else:
             self.model = AutoModel(self.config)
         if self.cfg.gradient_checkpointing:
@@ -189,12 +171,14 @@ def train_fn(CFG, fold, train_loader, model, criterion, optimizer, epoch, schedu
     losses = AverageMeter()
     start = end = time.time()
     global_step = 0
-    for step, (inputs, labels) in enumerate(train_loader):
-        inputs = collate(inputs)
+    for step, inputs in enumerate(train_loader):
         for k, v in inputs.items():
             inputs[k] = v.to(device)
-        labels = labels.to(device)
+
+        labels = inputs['labels']
+        del inputs['labels']
         batch_size = labels.size(0)
+
         with torch.cuda.amp.autocast(enabled=CFG.apex):
             y_preds = model(inputs)
             loss = criterion(y_preds, labels)
@@ -222,9 +206,9 @@ def train_fn(CFG, fold, train_loader, model, criterion, optimizer, epoch, schedu
                           loss=losses,
                           grad_norm=grad_norm,
                           lr=scheduler.get_lr()[0]))
-        if CFG.wandb:
-            wandb.log({f"[fold{fold}] loss": losses.val,
-                       f"[fold{fold}] lr": scheduler.get_lr()[0]})
+
+        wandb.log({f"[fold{fold}] loss": losses.val,
+                   f"[fold{fold}] lr": scheduler.get_lr()[0]})
     return losses.avg
 
 
@@ -233,11 +217,11 @@ def valid_fn(CFG, valid_loader, model, criterion, device):
     model.eval()
     preds = []
     start = end = time.time()
-    for step, (inputs, labels) in enumerate(valid_loader):
-        inputs = collate(inputs)
+    for step, inputs in enumerate(valid_loader):
         for k, v in inputs.items():
             inputs[k] = v.to(device)
-        labels = labels.to(device)
+        labels = inputs['labels']
+        del inputs['labels']
         batch_size = labels.size(0)
         with torch.no_grad():
             y_preds = model(inputs)
@@ -258,7 +242,7 @@ def valid_fn(CFG, valid_loader, model, criterion, device):
     return losses.avg, predictions
 
 
-def train_loop(folds, fold, CFG, artifacts_path, device):
+def train_loop(model, folds, fold, train_cfg, data_cfg, artifacts_path, device, tokenizer, target_cols):
     logger.info(f"========== fold: {fold} training ==========")
 
     # ====================================================
@@ -266,27 +250,26 @@ def train_loop(folds, fold, CFG, artifacts_path, device):
     # ====================================================
     train_folds = folds[folds['fold'] != fold].reset_index(drop=True)
     valid_folds = folds[folds['fold'] == fold].reset_index(drop=True)
-    valid_labels = valid_folds[CFG.target_cols].values
+    valid_labels = valid_folds[target_cols].values
 
-    train_dataset = TrainDataset(CFG, train_folds)
-    valid_dataset = TrainDataset(CFG, valid_folds)
+    train_dataset = TrainDataset(data_cfg, train_folds, tokenizer, target_cols)
+    valid_dataset = TrainDataset(data_cfg, valid_folds, tokenizer, target_cols)
 
     train_loader = DataLoader(train_dataset,
-                              batch_size=CFG.batch_size,
+                              batch_size=train_cfg.batch_size,
                               shuffle=True,
-                              num_workers=CFG.num_workers, pin_memory=True, drop_last=True)
+                              num_workers=train_cfg.num_workers, pin_memory=True, drop_last=True,
+                              collate_fn=DataCollatorWithPadding(tokenizer))
     valid_loader = DataLoader(valid_dataset,
-                              batch_size=CFG.batch_size * 2,
+                              batch_size=train_cfg.batch_size * 2,
                               shuffle=False,
-                              num_workers=CFG.num_workers, pin_memory=True, drop_last=False)
+                              num_workers=train_cfg.num_workers, pin_memory=True, drop_last=False,
+                              collate_fn=DataCollatorWithPadding(tokenizer))
 
     # ====================================================
     # model & optimizer
     # ====================================================
-    model = CustomModel(CFG, config_path=None, pretrained=True)
-    torch.save(model.config, artifacts_path + 'config.pth')
     model.to(device)
-
     def get_optimizer_params(model, encoder_lr, decoder_lr, weight_decay=0.0):
         param_optimizer = list(model.named_parameters())
         no_decay = ["bias", "LayerNorm.bias", "LayerNorm.weight"]
@@ -301,10 +284,10 @@ def train_loop(folds, fold, CFG, artifacts_path, device):
         return optimizer_parameters
 
     optimizer_parameters = get_optimizer_params(model,
-                                                encoder_lr=CFG.encoder_lr,
-                                                decoder_lr=CFG.decoder_lr,
-                                                weight_decay=CFG.weight_decay)
-    optimizer = AdamW(optimizer_parameters, lr=CFG.encoder_lr, eps=CFG.eps, betas=CFG.betas)
+                                                encoder_lr=train_cfg.encoder_lr,
+                                                decoder_lr=train_cfg.decoder_lr,
+                                                weight_decay=train_cfg.weight_decay)
+    optimizer = AdamW(optimizer_parameters, lr=train_cfg.encoder_lr, eps=train_cfg.eps, betas=train_cfg.betas)
 
     # ====================================================
     # scheduler
@@ -321,8 +304,8 @@ def train_loop(folds, fold, CFG, artifacts_path, device):
             )
         return scheduler
 
-    num_train_steps = int(len(train_folds) / CFG.batch_size * CFG.epochs)
-    scheduler = get_scheduler(CFG, optimizer, num_train_steps)
+    num_train_steps = int(len(train_folds) / train_cfg.batch_size * train_cfg.epochs)
+    scheduler = get_scheduler(train_cfg, optimizer, num_train_steps)
 
     # ====================================================
     # loop
@@ -331,15 +314,15 @@ def train_loop(folds, fold, CFG, artifacts_path, device):
 
     best_score = np.inf
 
-    for epoch in range(CFG.epochs):
+    for epoch in range(train_cfg.epochs):
 
         start_time = time.time()
 
         # train
-        avg_loss = train_fn(fold, train_loader, model, criterion, optimizer, epoch, scheduler, device)
+        avg_loss = train_fn(train_cfg, fold, train_loader, model, criterion, optimizer, epoch, scheduler, device)
 
         # eval
-        avg_val_loss, predictions = valid_fn(valid_loader, model, criterion, device)
+        avg_val_loss, predictions = valid_fn(train_cfg, valid_loader, model, criterion, device)
 
         # scoring
         score, scores = get_score(valid_labels, predictions)
@@ -349,69 +332,65 @@ def train_loop(folds, fold, CFG, artifacts_path, device):
         logger.info(
             f'Epoch {epoch + 1} - avg_train_loss: {avg_loss:.4f}  avg_val_loss: {avg_val_loss:.4f}  time: {elapsed:.0f}s')
         logger.info(f'Epoch {epoch + 1} - Score: {score:.4f}  Scores: {scores}')
-        if CFG.wandb:
-            wandb.log({f"[fold{fold}] epoch": epoch + 1,
-                       f"[fold{fold}] avg_train_loss": avg_loss,
-                       f"[fold{fold}] avg_val_loss": avg_val_loss,
-                       f"[fold{fold}] score": score})
+
+        wandb.log({f"[fold{fold}] epoch": epoch + 1,
+                   f"[fold{fold}] avg_train_loss": avg_loss,
+                   f"[fold{fold}] avg_val_loss": avg_val_loss,
+                   f"[fold{fold}] score": score})
 
         if best_score > score:
             best_score = score
             logger.info(f'Epoch {epoch + 1} - Save Best Score: {best_score:.4f} Model')
             torch.save({'model': model.state_dict(),
                         'predictions': predictions},
-                       artifacts_path + f"{CFG.model.replace('/', '-')}_fold{fold}_best.pth")
+                       artifacts_path + f"{train_cfg.model.replace('/', '-')}_fold{fold}_best.pth")
 
-    predictions = torch.load(artifacts_path + f"{CFG.model.replace('/', '-')}_fold{fold}_best.pth",
+    predictions = torch.load(artifacts_path + f"{train_cfg.model.replace('/', '-')}_fold{fold}_best.pth",
                              map_location=torch.device('cpu'))['predictions']
-    valid_folds[[f"pred_{c}" for c in CFG.target_cols]] = predictions
+    valid_folds[[f"pred_{c}" for c in train_cfg.target_cols]] = predictions
 
     torch.cuda.empty_cache()
     gc.collect()
 
     return valid_folds
 
-def get_result(oof_df, CFG):
-    labels = oof_df[CFG.target_cols].values
-    preds = oof_df[[f"pred_{c}" for c in CFG.target_cols]].values
+def get_result(oof_df, target_cols):
+    labels = oof_df[target_cols].values
+    preds = oof_df[[f"pred_{c}" for c in target_cols]].values
     score, scores = get_score(labels, preds)
     logger.info(f'Score: {score:<.4f}  Scores: {scores}')
 
 # This is still work in progress
 @SolutionFactory.register('transformer_finetune')
 class TransformerFinetune(Solution):
-    def do_train(self, train_data: pd.DataFrame, train_cfg: Mapping, model_cfg: Mapping, artifacts_path: str):
-        CFG = None 
-        
+    def do_train(self, train_data: pd.DataFrame, data_cfg: Mapping, train_cfg: Mapping, model_cfg: Mapping, env_cfg: Mapping):
+
         train = self.competition_data_manager.load_train_data()
         
-        Fold = MultilabelStratifiedKFold(n_splits=CFG.n_fold, shuffle=True, random_state=CFG.seed)
-        for n, (train_index, val_index) in enumerate(Fold.split(train, train[CFG.target_cols])):
+        Fold = MultilabelStratifiedKFold(n_splits=train_cfg.n_fold, shuffle=True, random_state=train_cfg.seed)
+        target_cols = self.competition_data_manager.LABEL_COLUMNS
+        for n, (train_index, val_index) in enumerate(Fold.split(train, train[target_cols])):
             train.loc[val_index, 'fold'] = int(n)
         train['fold'] = train['fold'].astype(int)
 
-        tokenizer = AutoTokenizer.from_pretrained(CFG.model)
-        tokenizer.save_pretrained(os.path.join(artifacts_path, 'tokenizer'))
-
-        lengths = []
-        tk0 = tqdm(train['full_text'].fillna("").values, total=len(train))
-        for text in tk0:
-            length = len(tokenizer(text, add_special_tokens=False)['input_ids'])
-            lengths.append(length)
-        CFG.max_len = max(lengths) + 3  # cls & sep & sep
-        logger.info(f"max_len: {CFG.max_len}")
+        tokenizer = AutoTokenizer.from_pretrained(model_cfg.backbone)
+        tokenizer.save_pretrained(os.path.join(env_cfg.artifacts_path, 'tokenizer'))
 
         oof_df = pd.DataFrame()
-        for fold in range(CFG.n_fold):
-            if fold in CFG.trn_fold:
-                _oof_df = train_loop(train, fold)
+        for fold in range(train_cfg.n_fold):
+            if fold in train_cfg.trn_fold:
+                model = CustomModel(model_cfg, config_path=None, pretrained=True)
+                torch.save(model.config, os.path.join(env_cfg.artifacts_path, 'config.pth'))
+
+                _oof_df = train_loop(model, train, fold, train_cfg, data_cfg, env_cfg.artifacts_path, env_cfg.device,
+                                     tokenizer, target_cols)
                 oof_df = pd.concat([oof_df, _oof_df])
                 logger.info(f"========== fold: {fold} result ==========")
-                get_result(_oof_df)
+                get_result(_oof_df, target_cols)
         oof_df = oof_df.reset_index(drop=True)
         logger.info(f"========== CV ==========")
-        get_result(oof_df)
-        oof_df.to_pickle(os.path.join(artifacts_path, 'oof_df.pkl'))
+        get_result(oof_df, target_cols)
+        oof_df.to_pickle(os.path.join(env_cfg.artifacts_path, 'oof_df.pkl'))
 
     def do_predict(self, input_data: pd.DataFrame, inference_cfg: Mapping, artifacts_path: str):
         pass

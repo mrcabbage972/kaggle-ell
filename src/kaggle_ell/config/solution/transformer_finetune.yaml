@@ -4,8 +4,7 @@ args:
     apex: True
     print_freq: 20
     num_workers: 4
-    gradient_checkpointing: True
-    scheduler: 'cosine' # ['linear', 'cosine']
+    scheduler: cosine
     batch_scheduler: True
     num_cycles: 0.5
     num_warmup_steps: 0
@@ -14,20 +13,21 @@ args:
     decoder_lr: 2e-5
     min_lr: 1e-6
     eps: 1e-6
-    betas: (0.9, 0.999)
+    betas: [0.9, 0.999]
     batch_size: 8
     weight_decay: 0.01
     gradient_accumulation_steps: 1
     max_grad_norm: 1000
     n_fold: 4
-    trn_fold: [0, 1, 2, 3]
+    trn_fold: [0]
+    seed: 42
   model:
-    backbone: "microsoft/deberta-v3-base"
+    backbone: "google/bert_uncased_L-2_H-128_A-2"
+    gradient_checkpointing: True
   inference:
   data:
-    max_len: 512
-    target_cols: [ 'cohesion', 'syntax', 'vocabulary', 'phraseology', 'grammar', 'conventions' ]
-
+    max_data_samples: 10
+    max_length: 512
 
 
 

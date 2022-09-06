@@ -32,3 +32,4 @@ class SolutionFactory:
         return solution
 
 from kaggle_ell.solutions.dummy_solution import DummySolution
+from kaggle_ell.solutions.transformer_finetune import TransformerFinetune

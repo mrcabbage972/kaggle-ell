@@ -26,7 +26,7 @@ class Solution(ABC):
 
         write_git_hash_to_file(os.path.join(self.env_cfg.artifacts_path, 'git_hash.txt'))
 
-        self.do_train(train_data, self.solution_cfg.train, self.solution_cfg.model, self.env_cfg.artifacts_path)
+        self.do_train(train_data, self.solution_cfg.data, self.solution_cfg.train, self.solution_cfg.model, self.env_cfg)
         logger.info('Finished training')
 
     def predict(self) -> pd.DataFrame:
@@ -41,7 +41,7 @@ class Solution(ABC):
         self.competition_data_manager.create_submission_file(preds, self.env_cfg.submission_path)
 
     @abstractmethod
-    def do_train(self, train_data: pd.DataFrame, train_cfg: Mapping, model_cfg: Mapping, artifacts_path: str):
+    def do_train(self, train_data: pd.DataFrame, train_cfg: Mapping, model_cfg: Mapping, env_cfg: Mapping):
         raise NotImplementedError()
 
     @abstractmethod
