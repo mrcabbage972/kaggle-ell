@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 @hydra.main(config_path="config", config_name="config", version_base=None)
 def main(cfg: OmegaConf):
     logger.info('*********STARTING**********')
-    git_hash = get_git_hash()
+    git_hash = get_git_hash() # TODO: this doesn't work from training notebook
     logger.info('Git hash={}'.format(git_hash))
     register_tqdm_logger()
     logger.info('cwd={}'.format(os.getcwd()))
