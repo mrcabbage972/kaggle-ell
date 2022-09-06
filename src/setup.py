@@ -7,7 +7,7 @@ setup(name='kaggle_ell',
           'console_scripts': ['run_solution=kaggle_ell.run_solution:main']
       },
     package_data={
-      'kaggle_ell': ['config/*.yaml', 'config/env/*.yaml', 'config/model/*.yaml', 'config/workflow/*.yaml'],
+      'kaggle_ell': ['config/*.yaml', 'config/env/*.yaml', 'config/model/*.yaml', 'config/solution/*.yaml'],
      },
       install_requires=[
           'pyyaml==6.0',
