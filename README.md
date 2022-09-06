@@ -17,3 +17,22 @@ The goal is for a Kaggle competitor to be able to:
 ## Create a Submission
 1. In a Kaggle notebook, install the project: `cd src && pip install -e .` 
 2. Run the script: ```run_solution wandb.enabled=false env=[ENVIRONMENT_NAME] solution=[SOLUTION_NAME] solution.do_create_submission=true ```
+
+
+## Configuration
+The configuration of the `run_solution` script is done with the `hydra-core` package, which allows specifying any attribute via either the config yaml files or the CLI.
+The top-level configs are `env` and `solution`. Their respective yaml's are located in: 
+
+    .
+    └── src                   
+        └── kaggle_ell
+            └── config
+                ├── env
+                     ├── colab.yaml
+                     ├── kaggle.yaml
+                     ├── local.yaml
+                │    └── [YOUR ENV NAME].yaml
+                └── solution 
+                    ├── dummy_solution.yaml
+                    └── [YOUR SOLUTION NAME].yaml
+Toggling between different environments and solutions is as simple as calling `run_solution env=[ENV NAME] solution=[SOLUTION NAME]`.
