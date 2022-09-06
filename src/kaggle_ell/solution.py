@@ -6,7 +6,7 @@ from typing import Mapping
 import pandas as pd
 
 from kaggle_ell.competition_data_manager import CompetitionDataManager
-from utils import write_git_hash_to_file
+from kaggle_ell.utils import write_git_hash_to_file
 
 logger = logging.getLogger(__name__)
 
