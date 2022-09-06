@@ -349,7 +349,7 @@ def train_loop(model, folds, fold, train_cfg, data_cfg, artifacts_path, device, 
 
     predictions = torch.load(checkpoint_path,
                              map_location=torch.device('cpu'))['predictions']
-    valid_folds[[f"pred_{c}" for c in train_cfg.target_cols]] = predictions
+    valid_folds[[f"pred_{c}" for c in target_cols]] = predictions
 
     torch.cuda.empty_cache()
     gc.collect()
