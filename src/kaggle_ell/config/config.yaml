@@ -1,7 +1,7 @@
 
 defaults:
   - env: local
-  - solution: transformer_finetune
+  - solution: dummy_solution
 
   # disable logging by Hydra
   - override hydra/job_logging: none

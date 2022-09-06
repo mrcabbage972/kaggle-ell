@@ -21,6 +21,9 @@ setup(name='kaggle_ell',
           'datasets',
           'wandb',
           'tqdm',
-          'gitpython'
+          'gitpython',
+          'torch',
+          'transformers',
+          'iterative-stratification'
       ],
      )

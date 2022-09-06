@@ -12,7 +12,8 @@ from omegaconf import OmegaConf
 
 from kaggle_ell.utils import register_tqdm_logger, flatten, log_disk_usage, get_git_hash
 from kaggle_ell.solution_factory import SolutionFactory
-from kaggle_ell.solutions import *
+#from  kaggle_ell.solutions import *
+#from kaggle_ell.solutions.transformer_finetune.transformer_finetune import TransformerFinetune
 
 HERE = pathlib.Path(__file__).parent.resolve()
 

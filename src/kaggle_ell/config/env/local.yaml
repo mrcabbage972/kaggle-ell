@@ -1,4 +1,4 @@
-competition_data_path: 'data/competition_data'
-artifacts_path: 'data/output/artifacts'
-submission_path: 'data/output'
+competition_data_path: '../../data/competition_data'
+artifacts_path: '../../data/output/artifacts'
+submission_path: '../../data/output'
 device: 'cpu'

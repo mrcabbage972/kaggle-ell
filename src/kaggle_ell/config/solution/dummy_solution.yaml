@@ -1,0 +1,6 @@
+name: dummy_solution
+args:
+    train:
+    inference:
+    model:
+    data:

@@ -26,7 +26,7 @@ class Solution(ABC):
 
         write_git_hash_to_file(os.path.join(self.env_cfg.artifacts_path, 'git_hash.txt'))
 
-        self.do_train(train_data, self.solution_cfg.train, self.env_cfg.artifacts_path)
+        self.do_train(train_data, self.solution_cfg.train, self.solution_cfg.model, self.env_cfg.artifacts_path)
         logger.info('Finished training')
 
     def predict(self) -> pd.DataFrame:

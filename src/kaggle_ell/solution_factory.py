@@ -30,3 +30,5 @@ class SolutionFactory:
         solution_class = cls.registry[name]
         solution = solution_class(solution_cfg, env_cfg)
         return solution
+
+from kaggle_ell.solutions.dummy_solution import DummySolution
