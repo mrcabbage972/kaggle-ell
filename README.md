@@ -16,10 +16,13 @@ The project has a single entry point, which is the script `run_solution`. It can
 1. In the training environment, install the project: `cd src && pip install .` 
 2. Run the script: ```run_solution env=[ENVIRONMENT_NAME] solution=[SOLUTION_NAME] solution.do_train=true ```
 3. Export the project to a wheel and export it to a Kaggle dataset
+
+[Example Notebook](notebooks/ell-git-project-template-training.ipynb)
 ## Create a Submission
 1. In a Kaggle notebook, install the project from a dataset: `cd ../input/[DATASET NAME] && pip install .` 
 2. Run the script: ```run_solution wandb.enabled=false env=[ENVIRONMENT_NAME] solution=[SOLUTION_NAME] solution.do_create_submission=true ```
 
+[Example Notebook](notebooks/ell-git-project-template-inference.ipynb)
 
 ## Configuration
 ### Overview
