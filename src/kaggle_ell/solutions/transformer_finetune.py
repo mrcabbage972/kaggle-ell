@@ -1,3 +1,7 @@
+##########################################################################################################################
+# This solution is adapated from: https://www.kaggle.com/code/yasufuminakama/fb3-deberta-v3-base-baseline-train#Library
+##########################################################################################################################
+
 import gc
 import math
 import os

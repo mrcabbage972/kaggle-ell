@@ -23,7 +23,7 @@ args:
     seed: 42
   model:
     backbone: "google/bert_uncased_L-2_H-128_A-2"
-    gradient_checkpointing: True
+    gradient_checkpointing: false
   inference:
     batch_size: 128
     num_workers: 1
