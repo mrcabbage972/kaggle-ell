@@ -11,5 +11,5 @@ class DummySolution(Solution):
     def do_train(self, train_data: pd.DataFrame, train_cfg: Mapping, model_cfg: Mapping, artifacts_path: str):
         pass
 
-    def do_predict(self, input_data: pd.DataFrame, inference_cfg: Mapping, artifacts_path: str):
+    def do_predict(self, input_data: pd.DataFrame, data_cfg: Mapping, inference_cfg: Mapping, model_cfg: Mapping, env_cfg: Mapping):
         return pd.DataFrame()
