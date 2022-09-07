@@ -22,6 +22,7 @@ The project has a single entry point, which is the script `run_solution`. It can
 
 
 ## Configuration
+### Overview
 The configuration of the `run_solution` script is done with the `hydra-core` package, which allows specifying any attribute via either the config yaml files or the CLI.
 The top-level configs are `env` and `solution`. Their respective yaml's are located in: 
 
@@ -37,6 +38,7 @@ The top-level configs are `env` and `solution`. Their respective yaml's are loca
                 └── solution 
                     ├── dummy_solution.yaml
                     └── [YOUR SOLUTION NAME].yaml
+### Setting Configuration Parameters
 Toggling between different environments and solutions is as simple as calling `run_solution env=[ENV NAME] solution=[SOLUTION NAME]`.
 
 It's also possible to override specific parameter values from the command-line (or notebook). Example: 
