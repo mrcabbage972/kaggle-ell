@@ -3,7 +3,7 @@ args:
   train:
     apex: True
     print_freq: 20
-    num_workers: 4
+    num_workers: 1
     scheduler: cosine
     batch_scheduler: True
     num_cycles: 0.5
@@ -25,6 +25,8 @@ args:
     backbone: "google/bert_uncased_L-2_H-128_A-2"
     gradient_checkpointing: True
   inference:
+    batch_size: 128
+    num_workers: 1
   data:
     max_data_samples: 10
     max_length: 512

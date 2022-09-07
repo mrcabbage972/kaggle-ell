@@ -32,7 +32,7 @@ class Solution(ABC):
     def predict(self) -> pd.DataFrame:
         logger.info('Starting inference')
         test_data = self.competition_data_manager.load_test_data()
-        preds = self.do_predict(test_data, self.solution_cfg.inference, self.env_cfg.artifacts_path)
+        preds = self.do_predict(test_data, self.solution_cfg.data, self.solution_cfg.inference, self.solution_cfg.model, self.env_cfg)
         logger.info('Finished inference')
         return preds
 
@@ -45,5 +45,5 @@ class Solution(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def do_predict(self, input_data: pd.DataFrame, inference_cfg: Mapping, artifacts_path: str):
+    def do_predict(self, input_data: pd.DataFrame, data_cfg: Mapping, inference_cfg: Mapping, model_cfg: Mapping, env_cfg: Mapping):
         raise NotImplementedError()

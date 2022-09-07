@@ -23,11 +23,16 @@ from kaggle_ell.solution_factory import SolutionFactory
 
 logger = logging.getLogger(__name__)
 
-class TrainDataset(Dataset):
-    def __init__(self, cfg, df, tokenizer, target_cols):
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
+class EllDataset(Dataset):
+    def __init__(self, cfg, df, tokenizer, target_cols=None):
         self.cfg = cfg
         self.texts = df['full_text'].values
-        self.labels = df[target_cols].values
+        if target_cols is not None:
+            self.labels = df[target_cols].values
+        else:
+            self.labels = None
         self.tokenizer = tokenizer
 
     def __len__(self):
@@ -36,7 +41,8 @@ class TrainDataset(Dataset):
     def __getitem__(self, item):
         inputs = self.tokenizer(self.texts[item], padding=True, truncation=True, max_length=self.cfg.max_length)
         #label = torch.tensor(self.labels[item], dtype=torch.float)
-        inputs['labels'] = self.labels[item]
+        if self.labels is not None:
+            inputs['labels'] = self.labels[item]
         return inputs
 
 
@@ -70,7 +76,7 @@ class CustomModel(nn.Module):
         if pretrained:
             self.model = AutoModel.from_pretrained(cfg.backbone, config=self.config)
         else:
-            self.model = AutoModel(self.config)
+            self.model = AutoModel.from_config(self.config)
         if self.cfg.gradient_checkpointing:
             self.model.gradient_checkpointing_enable()
         self.pool = MeanPooling()
@@ -252,8 +258,8 @@ def train_loop(model, folds, fold, train_cfg, data_cfg, artifacts_path, device, 
     valid_folds = folds[folds['fold'] == fold].reset_index(drop=True)
     valid_labels = valid_folds[target_cols].values
 
-    train_dataset = TrainDataset(data_cfg, train_folds, tokenizer, target_cols)
-    valid_dataset = TrainDataset(data_cfg, valid_folds, tokenizer, target_cols)
+    train_dataset = EllDataset(data_cfg, train_folds, tokenizer, target_cols)
+    valid_dataset = EllDataset(data_cfg, valid_folds, tokenizer, target_cols)
 
     train_loader = DataLoader(train_dataset,
                               batch_size=train_cfg.batch_size,
@@ -362,6 +368,20 @@ def get_result(oof_df, target_cols):
     score, scores = get_score(labels, preds)
     logger.info(f'Score: {score:<.4f}  Scores: {scores}')
 
+def inference_fn(test_loader, model, device):
+    preds = []
+    model.eval()
+    model.to(device)
+    tk0 = tqdm(test_loader, total=len(test_loader))
+    for inputs in tk0:
+        for k, v in inputs.items():
+            inputs[k] = v.to(device)
+        with torch.no_grad():
+            y_preds = model(inputs)
+        preds.append(y_preds.to('cpu').numpy())
+    predictions = np.concatenate(preds)
+    return predictions
+
 # This is still work in progress
 @SolutionFactory.register('transformer_finetune')
 class TransformerFinetune(Solution):
@@ -394,5 +414,30 @@ class TransformerFinetune(Solution):
         get_result(oof_df, target_cols)
         oof_df.to_pickle(os.path.join(env_cfg.artifacts_path, 'oof_df.pkl'))
 
-    def do_predict(self, input_data: pd.DataFrame, inference_cfg: Mapping, artifacts_path: str):
-        pass
+    def do_predict(self, input_data: pd.DataFrame, data_cfg: Mapping, inference_cfg: Mapping, model_cfg: Mapping, env_cfg: Mapping):
+        predictions = []
+
+        fold_paths = [x for x in os.listdir(env_cfg.artifacts_path) if x.endswith('.pth') and x.startswith('fold')]
+        config_path = os.path.join(env_cfg.artifacts_path, 'config.pth')
+
+        tokenizer = AutoTokenizer.from_pretrained(os.path.join(env_cfg.artifacts_path, 'tokenizer'))
+
+        test_dataset = EllDataset(data_cfg, self.competition_data_manager.load_test_data(),
+                                  tokenizer)
+        test_loader = DataLoader(test_dataset,
+                                 batch_size=inference_cfg.batch_size,
+                                 shuffle=False,
+                                 collate_fn=DataCollatorWithPadding(tokenizer=tokenizer),
+                                 num_workers=inference_cfg.num_workers, pin_memory=True, drop_last=False)
+
+        for fold_path in fold_paths:
+            model = CustomModel(model_cfg, config_path=config_path, pretrained=False)
+            state = torch.load(os.path.join(env_cfg.artifacts_path, fold_path),
+                               map_location=torch.device('cpu'))
+            model.load_state_dict(state['model'])
+            prediction = inference_fn(test_loader, model, env_cfg.device)
+            predictions.append(prediction)
+            del model, state, prediction
+            gc.collect()
+            torch.cuda.empty_cache()
+        return np.mean(predictions, axis=0)
