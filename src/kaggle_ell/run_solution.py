@@ -41,7 +41,7 @@ def main(cfg: OmegaConf):
     if cfg.solution.do_train:
         solution.train()
     else:
-        logger.info('Skipping training due to config')
+        logger.info('Skipping do_train due to config')
 
     if cfg.solution.do_predict:
         if os.path.exists(cfg.env.artifacts_path):
@@ -52,13 +52,15 @@ def main(cfg: OmegaConf):
         else:
             logger.error('Artifacts dir not found')
     else:
-        logger.info('Skipping inference due to config')
+        logger.info('Skipping do_predict due to config')
 
     if cfg.solution.do_create_submission:
         if os.path.exists(cfg.env.artifacts_path):
             solution.create_submission()
         else:
             logger.error('Artifacts dir not found')
+    else:
+        logger.info('Skipping do_create_submission due to config')
 
     log_disk_usage()
     logger.info('*****Finished successfully*****')
