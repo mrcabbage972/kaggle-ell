@@ -137,7 +137,7 @@ def compute_metrics(tokenizer, eval_pred):
         unpadded_labels[idx] = unpadded
 
     decoded_labels = tokenizer.batch_decode(unpadded_labels)
-    decoded_preds = tokenizer.batch_decode([x[1:] for x in predictions])
+    decoded_preds = tokenizer.batch_decode(predictions, skip_special_tokens=True)
     
     numeric_labels = decoded2numeric(decoded_labels)
     numeric_preds = decoded2numeric(decoded_preds)
@@ -204,7 +204,8 @@ def train_loop(model, train_ds, fold_idx, train_cfg, data_cfg, artifacts_path, d
     del_old_checkpoints(trainer.state.best_model_checkpoint)
 
     raw_preds = trainer.predict(ds_dict["test"]).predictions
-    oof_preds = decoded2numeric(tokenizer.batch_decode([x[1:] for x in raw_preds]))
+    oof_decoded = tokenizer.batch_decode(raw_preds, skip_special_tokens=True)
+    oof_preds = decoded2numeric(oof_decoded)
     preds_df = raw_ds_dict["test"].to_pandas()
     preds_df['pred'] = oof_preds
 
