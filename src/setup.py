@@ -24,6 +24,7 @@ setup(name='kaggle_ell',
           'gitpython',
           'torch',
           'transformers',
-          'iterative-stratification'
+          'iterative-stratification',
+          'sentencepiece'
       ],
      )

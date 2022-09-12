@@ -41,7 +41,7 @@ class Solution(ABC):
         self.competition_data_manager.create_submission_file(preds, self.env_cfg.submission_path)
 
     @abstractmethod
-    def do_train(self, train_data: pd.DataFrame, train_cfg: Mapping, model_cfg: Mapping, env_cfg: Mapping):
+    def do_train(self, train_data: pd.DataFrame, data_cfg: Mapping, train_cfg: Mapping, model_cfg: Mapping, env_cfg: Mapping):
         raise NotImplementedError()
 
     @abstractmethod
