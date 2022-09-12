@@ -39,7 +39,7 @@ def main(cfg: OmegaConf):
     if cfg.solution.do_train:
         solution.train()
 
-        write_git_hash_to_file(os.path.join(cfg.env.artifacts_path, 'git_hash.txt'))
+        write_git_hash_to_file(cfg.git_hash, os.path.join(cfg.env.artifacts_path, 'git_hash.txt'))
     else:
         logger.info('Skipping do_train due to config')
 
