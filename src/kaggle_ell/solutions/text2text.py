@@ -81,7 +81,7 @@ def get_train_test_split(train_all_ds, val_fold_idx, data_cfg):
     if data_cfg.max_train_samples > 0:
         split_ds['train'] = split_ds['train'].select(range(data_cfg.max_train_samples))
 
-    if data_cfg.max_val_samples is not None:
+    if data_cfg.max_val_samples > 0:
         split_ds['test'] = split_ds['test'].select(range(data_cfg.max_val_samples))
 
     return split_ds
