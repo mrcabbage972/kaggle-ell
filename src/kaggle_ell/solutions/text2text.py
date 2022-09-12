@@ -187,7 +187,8 @@ def train_loop(model, train_ds, fold_idx, train_cfg, data_cfg, artifacts_path, d
         gradient_checkpointing=train_cfg.gradient_checkpointing,
         gradient_accumulation_steps=train_cfg.gradient_accumulation_steps,
         generation_max_length=data_cfg.target_max_length,
-        predict_with_generate=True
+        predict_with_generate=True,
+        lr_scheduler_type=train_cfg.lr_scheduler_type
     )
 
     trainer = Seq2SeqTrainer(

@@ -44,7 +44,9 @@ def log_disk_usage():
     logger.info(
         "Disk Usage - total: %.2fGB" % (float(total) / BytesPerGB) + ", Used:  %.2fGB" % (float(used) / BytesPerGB))
 
-def get_git_hash():
+def get_git_hash(cfg_git_hash):
+    if cfg_git_hash != 'none':
+        return cfg_git_hash
     try:
         repo = git.Repo(search_parent_directories=True)
         sha = repo.head.object.hexsha
@@ -54,6 +56,6 @@ def get_git_hash():
         return 'none'
 
 
-def write_git_hash_to_file(output_file_path: str):
+def write_git_hash_to_file(cfg_git_hash, output_file_path: str):
     with open(output_file_path, 'w') as fout:
-        fout.write(get_git_hash())
+        fout.write(get_git_hash(cfg_git_hash))
