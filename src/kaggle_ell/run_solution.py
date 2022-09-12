@@ -10,10 +10,8 @@ import hydra
 import yaml
 from omegaconf import OmegaConf
 
-from kaggle_ell.utils import register_tqdm_logger, flatten, log_disk_usage, get_git_hash
+from kaggle_ell.utils import register_tqdm_logger, flatten, log_disk_usage, get_git_hash, write_git_hash_to_file
 from kaggle_ell.solution_factory import SolutionFactory
-#from  kaggle_ell.solutions import *
-#from kaggle_ell.solutions.transformer_finetune.transformer_finetune import TransformerFinetune
 
 HERE = pathlib.Path(__file__).parent.resolve()
 
@@ -26,20 +24,22 @@ logger = logging.getLogger(__name__)
 @hydra.main(config_path="config", config_name="config", version_base=None)
 def main(cfg: OmegaConf):
     logger.info('*********STARTING**********')
-    git_hash = get_git_hash() # TODO: this doesn't work from training notebook
+    git_hash = get_git_hash(cfg.git_hash)
     logger.info('Git hash={}'.format(git_hash))
     register_tqdm_logger()
     logger.info('cwd={}'.format(os.getcwd()))
     log_disk_usage()
 
     wandb_mode = 'online' if cfg.wandb.enabled else 'disabled'
-    cfg['git_hash'] = git_hash
+
     wandb.init(project=cfg.wandb.project, config=flatten(dict(cfg)), mode=wandb_mode)
 
     solution = SolutionFactory.make(cfg.solution.name, cfg.solution.args, cfg.env)
 
     if cfg.solution.do_train:
         solution.train()
+
+        write_git_hash_to_file(os.path.join(cfg.env.artifacts_path, 'git_hash.txt'))
     else:
         logger.info('Skipping do_train due to config')
 
