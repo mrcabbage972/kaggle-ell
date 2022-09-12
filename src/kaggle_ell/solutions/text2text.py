@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Mapping, List, Dict, Any
 import pandas as pd
 import torch
+import wandb
 from iterstrat.ml_stratifiers import MultilabelStratifiedKFold
 from sklearn.metrics import mean_squared_error
 from transformers import T5Tokenizer, T5ForConditionalGeneration, TrainingArguments, Trainer, EarlyStoppingCallback, \
@@ -49,9 +50,9 @@ class T2TDataCollator:
 
 # process the examples in input and target text format and the eos token at the end
 def add_input_texts(row):
-    row['source_text'] = '{} regression: '.format(row['task'], row['full_text'])
-    if int(row['score'] * 2) % 2 != 0:
-        row['score'] += 0.1 # TODO: better handling
+    row['source_text'] = '{}: {}'.format(row['task'], row['full_text'])
+    #if int(row['score'] * 2) % 2 != 0:
+    #    row['score'] += 0.1 # TODO: better handling
     row['target_text'] = str(row['score'])
     return row
 
@@ -125,6 +126,7 @@ def get_result(oof_df, target_cols):
     preds = oof_df[[f"pred_{c}" for c in target_cols]].values
     score, scores = get_score_mcrmse(labels, preds)
     logger.info(f'Score: {score:<.4f}  Scores: {scores}')
+    wandb.log({'MCRMSE': score})
 
 def compute_metrics(tokenizer, eval_pred):
     predictions, labels = eval_pred
