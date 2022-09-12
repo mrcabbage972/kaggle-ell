@@ -49,7 +49,7 @@ class T2TDataCollator:
 
 # process the examples in input and target text format and the eos token at the end
 def add_input_texts(row):
-    row['source_text'] = 'regression: {} source: {}'.format(row['task'], row['full_text'])
+    row['source_text'] = '{} score: '.format(row['task'], row['full_text'])
     row['target_text'] = str(row['score'])
     return row
 
