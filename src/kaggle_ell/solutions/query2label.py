@@ -10,7 +10,7 @@ import torch
 import torch.nn as nn
 from iterstrat.ml_stratifiers import MultilabelStratifiedKFold
 from transformers import AutoModel, TrainingArguments, Trainer, \
-    EarlyStoppingCallback, AutoTokenizer, DataCollatorWithPadding
+    EarlyStoppingCallback, AutoTokenizer, DataCollatorWithPadding, DebertaV2PreTrainedModel, AutoConfig, DebertaV2Model
 
 from kaggle_ell.solution import Solution
 from kaggle_ell.solution_factory import SolutionFactory
@@ -71,7 +71,7 @@ def positional_encoding(position, d_model_size, dtype):
     pos_encoding = torch.cat([sines, cosines], dim=-1)
     return pos_encoding
 
-class Qeruy2Label(nn.Module):
+class Qeruy2Label(DebertaV2PreTrainedModel):
     def __init__(self, model_cfg):
         """[summary]
 
@@ -80,13 +80,14 @@ class Qeruy2Label(nn.Module):
             transfomer ([type]): transformer model.
             num_class ([type]): number of classes. (80 for MSCOCO).
         """
-        super().__init__()
+        super().__init__(model_cfg)
         self.num_class = 6
-        self.backbone = AutoModel.from_pretrained(model_cfg.backbone)
+        self.backbone = DebertaV2Model(model_cfg)
 
         hidden_dim = self.backbone.config.hidden_size
 
-        self.transformer = Transformer(d_model=hidden_dim, num_encoder_layers=1, num_decoder_layers=1, normalize_before=False)
+        self.transformer = Transformer(d_model=hidden_dim, num_encoder_layers=model_cfg.encoder_layers,
+                                       num_decoder_layers=model_cfg.decoder_layers, normalize_before=False)
 
 
         # assert not (self.ada_fc and self.emb_fc), "ada_fc and emb_fc cannot be True at the same time."
@@ -101,6 +102,12 @@ class Qeruy2Label(nn.Module):
         self.pos_encoding = positional_encoding(max_pos_emb, hidden_dim, torch.float)
 
         self.loss_fn = nn.MSELoss()
+
+    def get_input_embeddings(self):
+        return self.backbone.get_input_embeddings()
+
+    def set_input_embeddings(self, new_embeddings):
+        self.backbone.set_input_embeddings(new_embeddings)
 
     def forward(self,
                     input_ids: Optional[torch.Tensor] = None,
@@ -242,7 +249,9 @@ class Query2Label(Solution):
         oof_df = pd.DataFrame()
         for fold in range(train_cfg.n_fold):
             if fold in train_cfg.trn_fold:
-                model = Qeruy2Label(model_cfg)
+                q2l_cfg = AutoConfig.from_pretrained(model_cfg.backbone)
+                q2l_cfg.update(model_cfg)
+                model = Qeruy2Label.from_pretrained(model_cfg.backbone, config=q2l_cfg)
 
                 _oof_df = train_loop(model, train_ds, fold, train_cfg, data_cfg, env_cfg.artifacts_path, env_cfg.device,
                                      tokenizer, target_cols)

@@ -18,7 +18,9 @@ args:
     lr_scheduler_type: constant
     num_workers: 1
   model:
-    backbone: "google/bert_uncased_L-2_H-128_A-2"
+    backbone: "microsoft/deberta-v3-small"
+    encoder_layers: 0
+    decoder_layers: 1
   inference:
     batch_size: 128
     num_workers: 1
