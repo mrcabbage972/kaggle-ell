@@ -103,6 +103,8 @@ class Qeruy2Label(DebertaV2PreTrainedModel):
 
         self.loss_fn = nn.MSELoss()
 
+        self.post_init()
+
     def get_input_embeddings(self):
         return self.backbone.get_input_embeddings()
 
