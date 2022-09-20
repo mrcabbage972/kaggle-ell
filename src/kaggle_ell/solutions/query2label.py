@@ -81,12 +81,13 @@ class Qeruy2Label(nn.Module):
             num_class ([type]): number of classes. (80 for MSCOCO).
         """
         super().__init__()
+        self.num_class = 6
         self.backbone = AutoModel.from_pretrained(model_cfg.backbone)
 
         hidden_dim = self.backbone.config.hidden_size
 
         self.transformer = Transformer(d_model=hidden_dim, num_encoder_layers=1, num_decoder_layers=1, normalize_before=False)
-        self.num_class = 6
+
 
         # assert not (self.ada_fc and self.emb_fc), "ada_fc and emb_fc cannot be True at the same time."
 
@@ -129,7 +130,7 @@ class Qeruy2Label(nn.Module):
         else:
             loss = self.loss_fn(out, labels)
 
-        return ((loss,) + tuple(out)) if loss is not None else out
+        return ((loss,) + (out, )) if loss is not None else out
 
     def finetune_params(self):
         from itertools import chain
