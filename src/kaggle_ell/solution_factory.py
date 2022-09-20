@@ -34,3 +34,4 @@ class SolutionFactory:
 from kaggle_ell.solutions.dummy_solution import DummySolution
 from kaggle_ell.solutions.transformer_finetune import TransformerFinetune
 from kaggle_ell.solutions.text2text import Text2Text
+from kaggle_ell.solutions.query2label import Query2Label

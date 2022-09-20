@@ -366,7 +366,7 @@ def train_loop(model, folds, fold, train_cfg, data_cfg, artifacts_path, device, 
 
     return valid_folds
 
-def get_result(oof_df, target_cols):
+def log_result(oof_df, target_cols):
     labels = oof_df[target_cols].values
     preds = oof_df[[f"pred_{c}" for c in target_cols]].values
     score, scores = get_score(labels, preds)
@@ -412,10 +412,10 @@ class TransformerFinetune(Solution):
                                      tokenizer, target_cols)
                 oof_df = pd.concat([oof_df, _oof_df])
                 logger.info(f"========== fold: {fold} result ==========")
-                get_result(_oof_df, target_cols)
+                log_result(_oof_df, target_cols)
         oof_df = oof_df.reset_index(drop=True)
         logger.info(f"========== CV ==========")
-        get_result(oof_df, target_cols)
+        log_result(oof_df, target_cols)
         oof_df.to_pickle(os.path.join(env_cfg.artifacts_path, 'oof_df.pkl'))
 
     def do_predict(self, input_data: pd.DataFrame, data_cfg: Mapping, inference_cfg: Mapping, model_cfg: Mapping, env_cfg: Mapping):

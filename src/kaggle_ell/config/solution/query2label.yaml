@@ -1,0 +1,32 @@
+name: query2label
+args:
+  train:
+    warmup_ratio: 0
+    epochs: 4
+    learning_rate: 0.001
+    train_batch_size: 8
+    eval_batch_size: 32
+    weight_decay: 0.01
+    early_stopping_patience: 1
+    n_fold: 4
+    trn_fold: [0, 1, 2, 3]
+    seed: 42
+    fp16: false
+    gradient_accumulation_steps: 4
+    gradient_checkpointing: false
+    optim: adamw_torch
+    lr_scheduler_type: constant
+    num_workers: 1
+  model:
+    backbone: "google/bert_uncased_L-2_H-128_A-2"
+  inference:
+    batch_size: 128
+    num_workers: 1
+  data:
+    max_train_samples: 16
+    max_val_samples: 12
+    source_max_length: 512
+    target_max_length: 4
+
+
+
