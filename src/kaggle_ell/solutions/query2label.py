@@ -48,7 +48,7 @@ class GroupWiseLinear(nn.Module):
 
     def forward(self, x):
         # x: B,K,d
-        x = (self.W * x).sum(-1)
+        x = (self.W * x).sum(-1) # TODO: input mask
         if self.bias:
             x = x + self.b
         return x
@@ -123,10 +123,11 @@ class Qeruy2Label(DebertaV2PreTrainedModel):
         position_ids = position_ids.unsqueeze(0).view(-1, input_ids.size()[-1])
         pos_embeds = self.pos_encoding[position_ids, :].to(device)
 
-        backbone_out = self.backbone(input_ids=input_ids,
-                                     attention_mask=attention_mask,
-                                     token_type_ids=token_type_ids,
-                                     ) # TODO: currently not using position embedding. Not clear if needed.
+        with torch.no_grad(): # TODO: just checking
+            backbone_out = self.backbone(input_ids=input_ids,
+                                         attention_mask=attention_mask,
+                                         token_type_ids=token_type_ids,
+                                         ) # TODO: currently not using position embedding. Not clear if needed.
 
         query_input = self.query_embed.weight
         hs = self.transformer(self.input_proj(backbone_out.last_hidden_state),
