@@ -371,6 +371,7 @@ def log_result(oof_df, target_cols):
     preds = oof_df[[f"pred_{c}" for c in target_cols]].values
     score, scores = get_score(labels, preds)
     logger.info(f'Score: {score:<.4f}  Scores: {scores}')
+    wandb.log({'MCRMSE': score})
 
 def inference_fn(test_loader, model, device):
     preds = []
