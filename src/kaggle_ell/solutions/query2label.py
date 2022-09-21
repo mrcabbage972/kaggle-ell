@@ -111,7 +111,7 @@ class Qeruy2Label(nn.Module):
 
         self.loss_fn = nn.MSELoss()
 
-        self.out_heads =[ nn.Linear(hidden_dim, 1) for _ in range(self.num_class)]
+        self.out_heads =nn.ModuleList([ nn.Linear(hidden_dim, 1) for _ in range(self.num_class)])
 
     def forward(self,
                     input_ids: Optional[torch.Tensor] = None,
