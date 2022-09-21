@@ -99,8 +99,10 @@ class Qeruy2Label(nn.Module):
 
         # assert not (self.ada_fc and self.emb_fc), "ada_fc and emb_fc cannot be True at the same time."
 
-
-        self.input_proj = nn.Identity() # nn.Conv2d(backbone.num_channels, hidden_dim, kernel_size=1)
+        if model_cfg.use_input_proj:
+            self.input_proj = nn.Sequential(nn.Linear(hidden_dim, hidden_dim), nn.Dropout(model_cfg.dropout)) # nn.Conv2d(backbone.num_channels, hidden_dim, kernel_size=1)
+        else:
+            self.input_proj = nn.Identity()
         self.query_embed = nn.Embedding(self.num_class, hidden_dim)
         #self.fc = GroupWiseLinear(self.num_class, hidden_dim, bias=True)
         self.linear_out = nn.Linear(hidden_dim, 1)
