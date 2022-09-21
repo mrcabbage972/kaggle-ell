@@ -18,15 +18,7 @@ import torch
 import torch.nn.functional as F
 from torch import nn, Tensor
 from torch.nn import MultiheadAttention
-from transformers.models.deberta_v2.modeling_deberta_v2 import StableDropout
 
-
-def get_dropout_func(name='regular'):
-    if name == 'regular':
-        return nn.Dropout
-    elif name == 'stable':
-        return StableDropout
-    raise IOError()
 
 
 class Transformer(nn.Module):
@@ -197,13 +189,13 @@ class TransformerEncoderLayer(nn.Module):
         self.self_attn = MultiheadAttention(d_model, nhead, dropout=dropout)
         # Implementation of Feedforward model
         self.linear1 = nn.Linear(d_model, dim_feedforward)
-        self.dropout = StableDropout(dropout)
+        self.dropout = nn.Dropout(dropout)
         self.linear2 = nn.Linear(dim_feedforward, d_model)
 
         self.norm1 = nn.LayerNorm(d_model)
         self.norm2 = nn.LayerNorm(d_model)
-        self.dropout1 = StableDropout(dropout)
-        self.dropout2 = StableDropout(dropout)
+        self.dropout1 = nn.Dropout(dropout)
+        self.dropout2 = nn.Dropout(dropout)
 
         self.activation = _get_activation_fn(activation)
         self.normalize_before = normalize_before
@@ -264,15 +256,15 @@ class TransformerDecoderLayer(nn.Module):
         self.multihead_attn = MultiheadAttention(d_model, nhead, dropout=dropout)
         # Implementation of Feedforward model
         self.linear1 = nn.Linear(d_model, dim_feedforward)
-        self.dropout = StableDropout(dropout)
+        self.dropout = nn.Dropout(dropout)
         self.linear2 = nn.Linear(dim_feedforward, d_model)
 
         self.norm1 = nn.LayerNorm(d_model)
         self.norm2 = nn.LayerNorm(d_model)
         self.norm3 = nn.LayerNorm(d_model)
-        self.dropout1 = StableDropout(dropout)
-        self.dropout2 = StableDropout(dropout)
-        self.dropout3 = StableDropout(dropout)
+        self.dropout1 = nn.Dropout(dropout)
+        self.dropout2 = nn.Dropout(dropout)
+        self.dropout3 = nn.Dropout(dropout)
 
         self.activation = _get_activation_fn(activation)
         self.normalize_before = normalize_before
