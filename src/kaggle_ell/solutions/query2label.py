@@ -225,7 +225,7 @@ def train_loop(model, train_ds, fold_idx, train_cfg, data_cfg, artifacts_path, d
         data_collator=DataCollatorWithPadding(tokenizer)
     )
 
-    trainer.evaluate()
+    #trainer.evaluate()
     trainer.train()
 
     raw_preds = np.array(trainer.predict(ds_dict["test"]).predictions)
