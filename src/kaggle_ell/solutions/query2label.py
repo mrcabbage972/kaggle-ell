@@ -92,7 +92,8 @@ class Qeruy2Label(nn.Module):
                                        normalize_before=False,
                                        nhead=1,
                                        rm_self_attn_dec=False,
-                                       rm_first_self_attn=False)
+                                       rm_first_self_attn=False,
+                                       activation='gelu')
 
 
         # assert not (self.ada_fc and self.emb_fc), "ada_fc and emb_fc cannot be True at the same time."
