@@ -81,6 +81,7 @@ class Qeruy2Label(nn.Module):
             num_class ([type]): number of classes. (80 for MSCOCO).
         """
         super().__init__()
+        self.model_cfg = model_cfg
         self.num_class = 6
         self.backbone = AutoModel.from_pretrained(model_cfg.backbone)
 
@@ -110,6 +111,8 @@ class Qeruy2Label(nn.Module):
 
         self.loss_fn = nn.MSELoss()
 
+        self.out_heads =[ nn.Linear(hidden_dim, 1) for _ in range(self.num_class)]
+
     def forward(self,
                     input_ids: Optional[torch.Tensor] = None,
                     attention_mask: Optional[torch.Tensor] = None,
@@ -131,8 +134,11 @@ class Qeruy2Label(nn.Module):
         hs = self.transformer(self.input_proj(backbone_out.last_hidden_state),
                               query_input, pos_embeds, mask=attention_mask)[0]  # B,K,d
 
+        if self.model_cfg.head_per_output:
+            out = torch.hstack([self.out_heads[i](hs[:, i, :]) for i in range(len(self.out_heads)) ])
+        else:
+            out = self.linear_out(hs).squeeze(-1)
 
-        out = self.linear_out(hs).squeeze(-1)
         #out = self.fc(hs)
         # import ipdb; ipdb.set_trace()
 

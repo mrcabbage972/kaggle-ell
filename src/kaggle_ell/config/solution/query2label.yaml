@@ -22,7 +22,8 @@ args:
     num_encoder_layers: 1
     num_decoder_layers: 1
     num_heads: 1
-    activation: gelu
+    activation: relu
+    head_per_output: false
   inference:
     batch_size: 128
     num_workers: 1
