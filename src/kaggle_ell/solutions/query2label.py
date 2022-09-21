@@ -100,7 +100,8 @@ class Qeruy2Label(nn.Module):
 
         self.input_proj = nn.Identity() # nn.Conv2d(backbone.num_channels, hidden_dim, kernel_size=1)
         self.query_embed = nn.Embedding(self.num_class, hidden_dim)
-        self.fc = GroupWiseLinear(self.num_class, hidden_dim, bias=True)
+        #self.fc = GroupWiseLinear(self.num_class, hidden_dim, bias=True)
+        self.linear_out = nn.Linear(hidden_dim, 1)
 
         # TODO: revisit max_position_embeddings here
         max_pos_emb = self.backbone.config.max_position_embeddings
@@ -128,7 +129,10 @@ class Qeruy2Label(nn.Module):
         query_input = self.query_embed.weight
         hs = self.transformer(self.input_proj(backbone_out.last_hidden_state),
                               query_input, pos_embeds, mask=attention_mask)[0]  # B,K,d
-        out = self.fc(hs)
+
+
+        out = self.linear_out(hs).squeeze(-1)
+        #out = self.fc(hs)
         # import ipdb; ipdb.set_trace()
 
         if labels is None:
