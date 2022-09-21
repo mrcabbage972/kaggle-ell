@@ -24,6 +24,7 @@ args:
     num_heads: 1
     activation: relu
     head_per_output: false
+    dropout: 0.1
   inference:
     batch_size: 128
     num_workers: 1

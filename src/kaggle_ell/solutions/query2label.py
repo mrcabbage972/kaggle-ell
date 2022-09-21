@@ -110,7 +110,8 @@ class Qeruy2Label(nn.Module):
         self.pos_encoding = positional_encoding(max_pos_emb, hidden_dim, torch.float)
 
         self.loss_fn = nn.MSELoss()
-
+        self.dropout1 = nn.Dropout(model_cfg.dropout)
+        self.dropout2 = nn.Dropout(model_cfg.dropout)
         self.out_heads =nn.ModuleList([ nn.Linear(hidden_dim, 1) for _ in range(self.num_class)])
 
     def forward(self,
@@ -129,11 +130,11 @@ class Qeruy2Label(nn.Module):
                                      attention_mask=attention_mask,
                                      token_type_ids=token_type_ids,
                                      ) # TODO: currently not using position embedding. Not clear if needed.
-
+        backbone_last_hs = self.dropout1(backbone_out.last_hidden_state)
         query_input = self.query_embed.weight
-        hs = self.transformer(self.input_proj(backbone_out.last_hidden_state),
+        hs = self.transformer(self.input_proj(backbone_last_hs),
                               query_input, pos_embeds, mask=attention_mask)[0]  # B,K,d
-
+        hs = self.dropout2(hs)
         if self.model_cfg.head_per_output:
             out = torch.hstack([self.out_heads[i](hs[:, i, :]) for i in range(len(self.out_heads)) ])
         else:
