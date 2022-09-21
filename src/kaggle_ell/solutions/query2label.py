@@ -87,13 +87,13 @@ class Qeruy2Label(nn.Module):
         hidden_dim = self.backbone.config.hidden_size
 
         self.transformer = Transformer(d_model=hidden_dim,
-                                       num_encoder_layers=1,
-                                       num_decoder_layers=1,
+                                       num_encoder_layers=model_cfg.num_encoder_layers,
+                                       num_decoder_layers=model_cfg.num_decoder_layers,
                                        normalize_before=False,
-                                       nhead=1,
+                                       nhead=model_cfg.num_heads,
                                        rm_self_attn_dec=False,
                                        rm_first_self_attn=False,
-                                       activation='gelu')
+                                       activation=model_cfg.activation)
 
 
         # assert not (self.ada_fc and self.emb_fc), "ada_fc and emb_fc cannot be True at the same time."
