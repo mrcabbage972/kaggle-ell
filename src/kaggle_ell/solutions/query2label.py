@@ -16,7 +16,7 @@ from kaggle_ell.solution import Solution
 from kaggle_ell.solution_factory import SolutionFactory
 from kaggle_ell.solutions.text2text import get_train_test_split
 from kaggle_ell.solutions.transformer import Transformer
-from kaggle_ell.solutions.transformer_finetune import log_result
+from kaggle_ell.solutions.transformer_finetune import log_result, MCRMSE
 
 logger = logging.getLogger(__name__)
 
@@ -119,7 +119,7 @@ class Qeruy2Label(nn.Module):
         self.loss_fn = nn.MSELoss()
         self.dropout1 = nn.Dropout(model_cfg.dropout)
         self.dropout2 = nn.Dropout(model_cfg.dropout)
-        self.out_heads =nn.ModuleList([ nn.Linear(hidden_dim, 1) for _ in range(self.num_class)])
+        self.out_heads =nn.ModuleList([ nn.Linear(hidden_dim_2, 1) for _ in range(self.num_class)])
 
     def forward(self,
                     input_ids: Optional[torch.Tensor] = None,
@@ -201,6 +201,14 @@ def transform_datasets_for_train(split_ds, tokenizer, data_cfg, target_cols):
 
     return encoded_ds
 
+
+def compute_metrics(eval_pred):
+    predictions, labels = eval_pred
+    mcrmse_score, _ = MCRMSE(labels, predictions)
+    return {
+        'mcrmse': mcrmse_score
+    }
+
 def train_loop(model, train_ds, fold_idx, train_cfg, data_cfg, artifacts_path, device, tokenizer, target_cols):
     raw_ds_dict = get_train_test_split(train_ds, fold_idx, data_cfg)
     ds_dict = transform_datasets_for_train(raw_ds_dict, tokenizer, data_cfg, target_cols)
@@ -217,7 +225,7 @@ def train_loop(model, train_ds, fold_idx, train_cfg, data_cfg, artifacts_path, d
         weight_decay=train_cfg.weight_decay,
         warmup_ratio=train_cfg.warmup_ratio,
         load_best_model_at_end=True,
-        metric_for_best_model="loss",
+        metric_for_best_model="mcrmse",
         greater_is_better=False,
         save_total_limit=1,
         log_level='error',
@@ -236,7 +244,8 @@ def train_loop(model, train_ds, fold_idx, train_cfg, data_cfg, artifacts_path, d
         tokenizer=tokenizer,
         # compute_metrics=lambda x: compute_metrics(tokenizer, x),
         callbacks=[EarlyStoppingCallback(early_stopping_patience=train_cfg.early_stopping_patience)],
-        data_collator=DataCollatorWithPadding(tokenizer)
+        data_collator=DataCollatorWithPadding(tokenizer),
+        compute_metrics=compute_metrics
     )
 
     #trainer.evaluate()
