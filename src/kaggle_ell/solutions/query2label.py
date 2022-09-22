@@ -215,9 +215,12 @@ def train_loop(model, train_ds, fold_idx, train_cfg, data_cfg, artifacts_path, d
 
     train_args = TrainingArguments(
         f"model{fold_idx}",
-        evaluation_strategy="epoch",
-        save_strategy="epoch",
-        logging_strategy="epoch",
+        evaluation_strategy="steps",
+        save_strategy="steps",
+        logging_strategy="steps",
+        logging_steps=train_cfg.logging_steps,
+        save_steps=train_cfg.logging_steps,
+        eval_steps=train_cfg.logging_steps,
         learning_rate=train_cfg.learning_rate,
         per_device_train_batch_size=train_cfg.train_batch_size,
         per_device_eval_batch_size=train_cfg.eval_batch_size,
