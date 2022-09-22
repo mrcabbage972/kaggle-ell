@@ -87,7 +87,12 @@ class Qeruy2Label(nn.Module):
 
         hidden_dim = self.backbone.config.hidden_size
 
-        self.transformer = Transformer(d_model=hidden_dim,
+        if model_cfg.hidden_dim > 0:
+            hidden_dim_2 = model_cfg.hidden_dim
+        else:
+            hidden_dim_2 = hidden_dim
+
+        self.transformer = Transformer(d_model=hidden_dim_2,
                                        num_encoder_layers=model_cfg.num_encoder_layers,
                                        num_decoder_layers=model_cfg.num_decoder_layers,
                                        normalize_before=False,
@@ -100,16 +105,16 @@ class Qeruy2Label(nn.Module):
         # assert not (self.ada_fc and self.emb_fc), "ada_fc and emb_fc cannot be True at the same time."
 
         if model_cfg.use_input_proj:
-            self.input_proj = nn.Sequential(nn.Linear(hidden_dim, hidden_dim), nn.Dropout(model_cfg.dropout)) # nn.Conv2d(backbone.num_channels, hidden_dim, kernel_size=1)
+            self.input_proj = nn.Sequential(nn.Linear(hidden_dim, hidden_dim_2), nn.Dropout(model_cfg.dropout)) # nn.Conv2d(backbone.num_channels, hidden_dim, kernel_size=1)
         else:
             self.input_proj = nn.Identity()
-        self.query_embed = nn.Embedding(self.num_class, hidden_dim)
+        self.query_embed = nn.Embedding(self.num_class, hidden_dim_2)
         #self.fc = GroupWiseLinear(self.num_class, hidden_dim, bias=True)
-        self.linear_out = nn.Linear(hidden_dim, 1)
+        self.linear_out = nn.Linear(hidden_dim_2, 1)
 
         # TODO: revisit max_position_embeddings here
         max_pos_emb = self.backbone.config.max_position_embeddings
-        self.pos_encoding = positional_encoding(max_pos_emb, hidden_dim, torch.float)
+        self.pos_encoding = positional_encoding(max_pos_emb, hidden_dim_2, torch.float)
 
         self.loss_fn = nn.MSELoss()
         self.dropout1 = nn.Dropout(model_cfg.dropout)
