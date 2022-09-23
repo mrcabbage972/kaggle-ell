@@ -119,9 +119,11 @@ class Qeruy2Label(nn.Module):
         self.loss_fn = nn.MSELoss()
         self.dropout1 = nn.Dropout(model_cfg.dropout)
         self.dropout2 = nn.Dropout(model_cfg.dropout)
-        self.out_heads =nn.ModuleList([ nn.Linear(hidden_dim_2, 1) for _ in range(self.num_class)])
+        self.out_heads =nn.ModuleList([ nn.Sequential(nn.Linear(hidden_dim_2, hidden_dim_2),
+                                                      nn.GELU(),
+                                                      nn.Linear(hidden_dim_2, 1))
+                                        for _ in range(self.num_class)])
 
-        self.head1 = nn.Linear(hidden_dim, self.num_class)
 
     def forward(self,
                     input_ids: Optional[torch.Tensor] = None,
@@ -133,8 +135,8 @@ class Qeruy2Label(nn.Module):
 
         position_ids = torch.arange(0, input_ids.size()[-1], dtype=torch.long, device=device)
         position_ids = position_ids.unsqueeze(0).view(-1, input_ids.size()[-1])
-        #pos_embeds = self.pos_encoding[position_ids, :].to(device)
-        pos_embeds = torch.zeros_like(self.pos_encoding[position_ids, :], device=device)
+        pos_embeds = self.pos_encoding[position_ids, :].to(device)
+        #pos_embeds = torch.zeros_like(self.pos_encoding[position_ids, :], device=device)
 
         backbone_out = self.backbone(input_ids=input_ids,
                                      attention_mask=attention_mask,
