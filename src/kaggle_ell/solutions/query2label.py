@@ -99,7 +99,8 @@ class Qeruy2Label(nn.Module):
                                        nhead=model_cfg.num_heads,
                                        rm_self_attn_dec=False,
                                        rm_first_self_attn=False,
-                                       activation=model_cfg.activation)
+                                       activation=model_cfg.activation,
+                                       dim_feedforward=model_cfg.dim_feedforward)
 
 
         # assert not (self.ada_fc and self.emb_fc), "ada_fc and emb_fc cannot be True at the same time."
