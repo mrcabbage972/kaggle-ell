@@ -133,7 +133,8 @@ class Qeruy2Label(nn.Module):
 
         position_ids = torch.arange(0, input_ids.size()[-1], dtype=torch.long, device=device)
         position_ids = position_ids.unsqueeze(0).view(-1, input_ids.size()[-1])
-        pos_embeds = self.pos_encoding[position_ids, :].to(device)
+        #pos_embeds = self.pos_encoding[position_ids, :].to(device)
+        pos_embeds = torch.zeros_like(self.pos_encoding[position_ids, :], device=device)
 
         backbone_out = self.backbone(input_ids=input_ids,
                                      attention_mask=attention_mask,
@@ -155,7 +156,7 @@ class Qeruy2Label(nn.Module):
         if labels is None:
             loss = None
         else:
-            loss = self.loss_fn(0.5 * out + 0.5 * self.head1(backbone_last_hs[:, 0, :]), labels)
+            loss = self.loss_fn(out, labels)
 
         return ((loss,) + (out, )) if loss is not None else out
 
