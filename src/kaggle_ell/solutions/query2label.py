@@ -120,9 +120,11 @@ class Qeruy2Label(nn.Module):
         self.dropout1 = nn.Dropout(model_cfg.dropout)
         self.dropout2 = nn.Dropout(model_cfg.dropout)
         self.out_heads =nn.ModuleList([ nn.Sequential(nn.Linear(hidden_dim_2, hidden_dim_2),
-                                                      nn.GELU(),
+                                                      nn.ReLU(),
                                                       nn.Linear(hidden_dim_2, 1))
                                         for _ in range(self.num_class)])
+        #self.final_out = nn.Sequential(nn.ReLU(), nn.Linear(self.num_class, self.num_class))
+        self.pos_embeds = nn.Embedding(max_pos_emb, hidden_dim_2)
 
 
     def forward(self,
@@ -135,7 +137,8 @@ class Qeruy2Label(nn.Module):
 
         position_ids = torch.arange(0, input_ids.size()[-1], dtype=torch.long, device=device)
         position_ids = position_ids.unsqueeze(0).view(-1, input_ids.size()[-1])
-        pos_embeds = self.pos_encoding[position_ids, :].to(device)
+        pos_embeds = self.pos_embeds(position_ids)
+        #pos_embeds = self.pos_encoding[position_ids, :].to(device)
         #pos_embeds = torch.zeros_like(self.pos_encoding[position_ids, :], device=device)
 
         backbone_out = self.backbone(input_ids=input_ids,
@@ -151,7 +154,7 @@ class Qeruy2Label(nn.Module):
             out = torch.hstack([self.out_heads[i](hs[:, i, :]) for i in range(len(self.out_heads)) ])
         else:
             out = self.linear_out(hs).squeeze(-1)
-
+        #out = self.final_out(out)
         #out = self.fc(hs)
         # import ipdb; ipdb.set_trace()
 
