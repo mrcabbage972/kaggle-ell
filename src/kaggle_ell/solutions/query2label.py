@@ -152,10 +152,12 @@ class Qeruy2Label(nn.Module):
         #out = self.fc(hs)
         # import ipdb; ipdb.set_trace()
 
+        out = 0.5 * out + 0.5 * self.head1(backbone_last_hs[:, 0, :])
+
         if labels is None:
             loss = None
         else:
-            loss = self.loss_fn(out + self.head1(backbone_last_hs[:, 0, :]), labels)
+            loss = self.loss_fn(out, labels)
 
         return ((loss,) + (out, )) if loss is not None else out
 
