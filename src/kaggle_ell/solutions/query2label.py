@@ -121,6 +121,8 @@ class Qeruy2Label(nn.Module):
         self.dropout2 = nn.Dropout(model_cfg.dropout)
         self.out_heads =nn.ModuleList([ nn.Linear(hidden_dim_2, 1) for _ in range(self.num_class)])
 
+        self.head1 = nn.Linear(hidden_dim, self.num_class)
+
     def forward(self,
                     input_ids: Optional[torch.Tensor] = None,
                     attention_mask: Optional[torch.Tensor] = None,
@@ -153,7 +155,7 @@ class Qeruy2Label(nn.Module):
         if labels is None:
             loss = None
         else:
-            loss = self.loss_fn(out, labels)
+            loss = self.loss_fn(out + self.head1(backbone_last_hs[:, 0, :]), labels)
 
         return ((loss,) + (out, )) if loss is not None else out
 
