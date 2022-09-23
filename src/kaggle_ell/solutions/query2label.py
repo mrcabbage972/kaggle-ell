@@ -120,12 +120,10 @@ class Qeruy2Label(nn.Module):
         self.loss_fn = nn.MSELoss()
         self.dropout1 = nn.Dropout(model_cfg.dropout)
         self.dropout2 = nn.Dropout(model_cfg.dropout)
-        self.out_heads =nn.ModuleList([ nn.Sequential(nn.Linear(hidden_dim_2, hidden_dim_2),
-                                                      nn.ReLU(),
-                                                      nn.Linear(hidden_dim_2, 1))
+        self.out_heads =nn.ModuleList([ nn.Sequential(nn.Linear(hidden_dim_2, 1))
                                         for _ in range(self.num_class)])
         #self.final_out = nn.Sequential(nn.ReLU(), nn.Linear(self.num_class, self.num_class))
-        self.pos_embeds = nn.Embedding(max_pos_emb, hidden_dim_2)
+        #self.pos_embeds = nn.Embedding(max_pos_emb, hidden_dim_2)
 
 
     def forward(self,
