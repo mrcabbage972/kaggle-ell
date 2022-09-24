@@ -92,7 +92,7 @@ class Qeruy2Label(nn.Module):
         else:
             hidden_dim_2 = hidden_dim
 
-        self.transformer = Transformer(d_model=hidden_dim_2,
+        '''self.transformer = Transformer(d_model=hidden_dim_2,
                                        num_encoder_layers=model_cfg.num_encoder_layers,
                                        num_decoder_layers=model_cfg.num_decoder_layers,
                                        normalize_before=False,
@@ -100,7 +100,17 @@ class Qeruy2Label(nn.Module):
                                        rm_self_attn_dec=False,
                                        rm_first_self_attn=False,
                                        activation=model_cfg.activation,
-                                       dim_feedforward=model_cfg.dim_feedforward)
+                                       dim_feedforward=model_cfg.dim_feedforward)'''
+
+        '''self.transformer = nn.Transformer(d_model=hidden_dim_2, nhead=model_cfg.num_heads,
+                                          num_encoder_layers=model_cfg.num_encoder_layers,
+                                          num_decoder_layers=model_cfg.num_decoder_layers,
+                                          dropout=model_cfg.dropout, batch_first=True)'''
+        decoder_layer = nn.TransformerDecoderLayer(d_model=hidden_dim_2, nhead=model_cfg.num_heads
+                                                   , dim_feedforward=model_cfg.dim_feedforward, dropout=model_cfg.dropout,
+                                                activation=model_cfg.activation, layer_norm_eps=1e-5, batch_first=True)
+        decoder_norm = nn.LayerNorm(hidden_dim_2, eps=1e-5)
+        self.decoder = nn.TransformerDecoder(decoder_layer, model_cfg.num_decoder_layers, decoder_norm)
 
 
         # assert not (self.ada_fc and self.emb_fc), "ada_fc and emb_fc cannot be True at the same time."
@@ -110,7 +120,7 @@ class Qeruy2Label(nn.Module):
         else:
             self.input_proj = nn.Identity()
         self.query_embed = nn.Embedding(self.num_class, hidden_dim_2)
-        self.query_embed.requires_grad_(False)
+        #self.query_embed.requires_grad_(False)
         #self.fc = GroupWiseLinear(self.num_class, hidden_dim, bias=True)
         self.linear_out = nn.Linear(hidden_dim_2, 1)
 
@@ -146,9 +156,14 @@ class Qeruy2Label(nn.Module):
                                      token_type_ids=token_type_ids,
                                      ) # TODO: currently not using position embedding. Not clear if needed.
         backbone_last_hs = self.dropout1(backbone_out.last_hidden_state)
-        query_input = self.query_embed.weight + pos_embeds[0, :6, :]
-        hs = self.transformer(self.input_proj(backbone_last_hs),
-                              query_input, pos_embeds, mask=attention_mask)[0]  # B,K,d
+        #query_input = torch.zeros_like(self.query_embed.weight)
+
+        transformer_input = self.input_proj(backbone_last_hs) + pos_embeds
+        query_input = self.query_embed.weight.unsqueeze(1).repeat(1, transformer_input.shape[0], 1).permute(1, 0, 2)
+        #query_input= query_input.permute(0, 2, 1)
+        #transformer_input = transformer_input.permute(0, 2, 1)
+        hs = self.decoder(
+                              query_input, transformer_input)  # B,K,d
         hs = self.dropout2(hs)
         if self.model_cfg.head_per_output:
             out = torch.hstack([self.out_heads[i](hs[:, i, :]) for i in range(len(self.out_heads)) ])
