@@ -110,6 +110,7 @@ class Qeruy2Label(nn.Module):
         else:
             self.input_proj = nn.Identity()
         self.query_embed = nn.Embedding(self.num_class, hidden_dim_2)
+        self.query_embed.requires_grad_(False)
         #self.fc = GroupWiseLinear(self.num_class, hidden_dim, bias=True)
         self.linear_out = nn.Linear(hidden_dim_2, 1)
 
