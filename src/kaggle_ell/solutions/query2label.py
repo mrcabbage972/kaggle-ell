@@ -146,7 +146,7 @@ class Qeruy2Label(nn.Module):
                                      token_type_ids=token_type_ids,
                                      ) # TODO: currently not using position embedding. Not clear if needed.
         backbone_last_hs = self.dropout1(backbone_out.last_hidden_state)
-        query_input = self.query_embed.weight
+        query_input = self.query_embed.weight + pos_embeds[0, :6, :]
         hs = self.transformer(self.input_proj(backbone_last_hs),
                               query_input, pos_embeds, mask=attention_mask)[0]  # B,K,d
         hs = self.dropout2(hs)
