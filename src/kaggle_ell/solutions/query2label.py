@@ -92,15 +92,15 @@ class Qeruy2Label(nn.Module):
         else:
             hidden_dim_2 = hidden_dim
 
-        '''self.transformer = Transformer(d_model=hidden_dim_2,
+        self.transformer = Transformer(d_model=hidden_dim_2,
                                        num_encoder_layers=model_cfg.num_encoder_layers,
                                        num_decoder_layers=model_cfg.num_decoder_layers,
-                                       normalize_before=False,
+                                       normalize_before=True,
                                        nhead=model_cfg.num_heads,
                                        rm_self_attn_dec=False,
                                        rm_first_self_attn=False,
                                        activation=model_cfg.activation,
-                                       dim_feedforward=model_cfg.dim_feedforward)'''
+                                       dim_feedforward=model_cfg.dim_feedforward)
 
         '''self.transformer = nn.Transformer(d_model=hidden_dim_2, nhead=model_cfg.num_heads,
                                           num_encoder_layers=model_cfg.num_encoder_layers,
@@ -120,7 +120,7 @@ class Qeruy2Label(nn.Module):
         else:
             self.input_proj = nn.Identity()
         self.query_embed = nn.Embedding(self.num_class, hidden_dim_2)
-        #self.query_embed.requires_grad_(False)
+        self.query_embed.requires_grad_(True)
         #self.fc = GroupWiseLinear(self.num_class, hidden_dim, bias=True)
         self.linear_out = nn.Linear(hidden_dim_2, 1)
 
@@ -129,6 +129,7 @@ class Qeruy2Label(nn.Module):
         self.pos_encoding = positional_encoding(max_pos_emb, hidden_dim_2, torch.float)
 
         self.loss_fn = nn.MSELoss()
+        #self.loss_fn = nn.SmoothL1Loss(reduction='mean') #
         self.dropout1 = nn.Dropout(model_cfg.dropout)
         self.dropout2 = nn.Dropout(model_cfg.dropout)
         self.out_heads =nn.ModuleList([ nn.Sequential(nn.Linear(hidden_dim_2, 1))
@@ -151,34 +152,47 @@ class Qeruy2Label(nn.Module):
         pos_embeds = self.pos_encoding[position_ids, :].to(device)
         #pos_embeds = torch.zeros_like(self.pos_encoding[position_ids, :], device=device)
 
-        backbone_out = self.backbone(input_ids=input_ids,
-                                     attention_mask=attention_mask,
-                                     token_type_ids=token_type_ids,
-                                     ) # TODO: currently not using position embedding. Not clear if needed.
-        backbone_last_hs = self.dropout1(backbone_out.last_hidden_state)
-        #query_input = torch.zeros_like(self.query_embed.weight)
+        logits_list = []
 
-        transformer_input = self.input_proj(backbone_last_hs) + pos_embeds
-        query_input = self.query_embed.weight.unsqueeze(1).repeat(1, transformer_input.shape[0], 1).permute(1, 0, 2)
-        #query_input= query_input.permute(0, 2, 1)
-        #transformer_input = transformer_input.permute(0, 2, 1)
-        hs = self.decoder(
-                              query_input, transformer_input)  # B,K,d
-        hs = self.dropout2(hs)
-        if self.model_cfg.head_per_output:
-            out = torch.hstack([self.out_heads[i](hs[:, i, :]) for i in range(len(self.out_heads)) ])
-        else:
-            out = self.linear_out(hs).squeeze(-1)
-        #out = self.final_out(out)
-        #out = self.fc(hs)
-        # import ipdb; ipdb.set_trace()
+        for i in range(2):
+            backbone_out = self.backbone(input_ids=input_ids,
+                                         attention_mask=attention_mask,
+                                         token_type_ids=token_type_ids,
+                                         ) # TODO: currently not using position embedding. Not clear if needed.
+            backbone_last_hs = self.dropout1(backbone_out.last_hidden_state)
+            #query_input = torch.zeros_like(self.query_embed.weight)
+
+            #transformer_input = self.input_proj(backbone_last_hs) #+ pos_embeds
+            #query_input = self.query_embed.weight.unsqueeze(1).repeat(1, transformer_input.shape[0], 1).permute(1, 0, 2)
+            #query_input= query_input.permute(0, 2, 1)
+            #transformer_input = transformer_input.permute(0, 2, 1)
+            #hs = self.decoder(
+            #                      query_input, transformer_input, memory_key_padding_mask=attention_mask)  # B,K,d
+
+            query_input = self.query_embed.weight
+            hs = self.transformer(self.input_proj(backbone_last_hs),
+                                  query_input, pos_embeds, mask=attention_mask)[0]
+            hs = self.dropout2(hs)
+            if self.model_cfg.head_per_output:
+                out = torch.hstack([self.out_heads[i](hs[:, i, :]) for i in range(len(self.out_heads)) ])
+            else:
+                out = self.linear_out(hs).squeeze(-1)
+            #out = self.final_out(out)
+            #out = self.fc(hs)
+            # import ipdb; ipdb.set_trace()
+            logits_list.append(out)
 
         if labels is None:
             loss = None
         else:
-            loss = self.loss_fn(out, labels)
+            alpha = 1
+            loss = 0
+            for logits in logits_list:
+                loss += alpha * self.loss_fn(logits, labels)
+            loss += 0.5 * self.loss_fn(logits_list[0], logits_list[-1])
+            #loss = self.loss_fn(out, labels)
 
-        return ((loss,) + (out, )) if loss is not None else out
+        return ((loss,) + (logits_list[0], )) if loss is not None else logits_list[0]
 
     def finetune_params(self):
         from itertools import chain
