@@ -50,10 +50,10 @@ class T2TDataCollator:
 
 # process the examples in input and target text format and the eos token at the end
 def add_input_texts(row):
-    row['source_text'] = '{}: {}'.format(row['task'], row['full_text'])
+    row['source_text'] = '{}: {}'.format(row['task'], row['full_text']) + " </s>"
     #if int(row['score'] * 2) % 2 != 0:
     #    row['score'] += 0.1 # TODO: better handling
-    row['target_text'] = str(row['score'])
+    row['target_text'] = str(row['score']) + " </s>"
     return row
 
 # tokenize the examples
